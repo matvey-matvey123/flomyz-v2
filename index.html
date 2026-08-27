@@ -42,18 +42,17 @@
   .now { font-size: 12px; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); }
   #nowTitle { font-size: 20px; margin: 6px 0 12px; word-break: break-word; min-height: 26px; }
   #nowTitle.placeholder { color: var(--muted); font-size: 16px; font-weight: normal; }
-  .controls { display: flex; gap: 10px; margin: 10px 0; }
+  .controls { display: flex; gap: 10px; margin: 12px 0; }
   .ctl {
-    width: 46px; height: 46px; border-radius: 50%;
     border: 1px solid var(--border); background: var(--card2);
-    color: var(--text); font-size: 16px; cursor: pointer;
-    display: inline-flex; align-items: center; justify-content: center;
-    transition: transform .1s, opacity .15s;
+    color: var(--text); font-size: 14px; font-weight: 600; cursor: pointer;
+    padding: 10px 24px; border-radius: 12px; min-width: 100px;
+    transition: transform .1s, opacity .15s, background .15s, border-color .15s;
   }
   .ctl:hover { opacity: .85; }
-  .ctl:active { transform: scale(.95); }
-  .ctl.play { background: linear-gradient(135deg, var(--accent), #4a2fd6); border-color: transparent; }
-  .ctl.stop:hover { color: var(--accent2); border-color: var(--accent2); }
+  .ctl:active { transform: scale(.97); }
+  .ctl.playing { background: linear-gradient(135deg, var(--accent), #4a2fd6); border-color: transparent; }
+  .ctl-stop:hover { color: var(--accent2); border-color: var(--accent2); }
   .seek { display: flex; align-items: center; gap: 12px; }
   .time { font-size: 13px; color: var(--muted); min-width: 38px; text-align: center; }
   input[type="range"] {
@@ -107,8 +106,8 @@
       <div class="now">Сейчас играет</div>
       <div id="nowTitle" class="placeholder">Выбери трек</div>
       <div class="controls">
-        <button class="ctl" id="btnToggle" title="Играть / Пауза">&#9654;</button>
-        <button class="ctl" id="btnStop" title="Стоп">&#9632;</button>
+        <button class="ctl" id="btnToggle">Играть</button>
+        <button class="ctl ctl-stop" id="btnStop">Стоп</button>
       </div>
       <div class="seek">
         <span class="time" id="cur">0:00</span>
@@ -200,7 +199,6 @@
     el.audio.currentTime = 0;
     el.seekBar.value = 0;
     el.cur.textContent = '0:00';
-    el.btnToggle.classList.remove('play');
     el.nowTitle.textContent = 'Остановлено: ' + (tracks[current] ? tracks[current].name : '');
     updateActive();
   }
@@ -232,8 +230,8 @@
     el.cur.textContent = fmt(el.audio.currentTime);
     el.seekBar.value = el.audio.duration ? (el.audio.currentTime / el.audio.duration) * 100 : 0;
   });
-  el.audio.addEventListener('play', () => { el.btnToggle.classList.add('play'); el.btnToggle.innerHTML = '&#10074;&#10074;'; });
-  el.audio.addEventListener('pause', () => { el.btnToggle.classList.remove('play'); el.btnToggle.innerHTML = '&#9654;'; });
+  el.audio.addEventListener('play', () => { el.btnToggle.classList.add('playing'); el.btnToggle.textContent = 'Пауза'; });
+  el.audio.addEventListener('pause', () => { el.btnToggle.classList.remove('playing'); el.btnToggle.textContent = 'Играть'; });
   el.audio.addEventListener('loadedmetadata', () => { el.dur.textContent = fmt(el.audio.duration); });
   el.audio.addEventListener('ended', () => play((current + 1) % tracks.length));
   el.audio.addEventListener('error', () => {
