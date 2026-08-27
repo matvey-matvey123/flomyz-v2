@@ -30,10 +30,7 @@
     background: linear-gradient(135deg, var(--accent), var(--accent2));
     margin-right: 8px; box-shadow: 0 0 12px var(--accent);
   }
-  .status { color: var(--muted); font-size: 13px; }
   main { max-width: 640px; margin: 0 auto; padding: 24px 20px 60px; }
-  h1 { font-size: 24px; margin-bottom: 4px; }
-  p.sub { color: var(--muted); font-size: 14px; margin-bottom: 18px; }
 
   .player {
     background: var(--card); border: 1px solid var(--border);
@@ -95,13 +92,9 @@
 <body>
   <div class="top">
     <div class="logo"><span></span>FLOMYZ <b>СЛУШАТЬ</b></div>
-    <div class="status" id="status"></div>
   </div>
 
   <main>
-    <h1>Фрагменты из GitHub</h1>
-    <p class="sub" id="src">Загрузка из репозитория matvey-matvey123/music…</p>
-
     <div class="player">
       <div class="now">Сейчас играет</div>
       <div id="nowTitle" class="placeholder">Выбери трек</div>
@@ -131,9 +124,9 @@
   const AUDIO_EXTS = ['.mp3', '.wav', '.ogg', '.m4a', '.aac', '.flac', '.opus'];
   const $ = id => document.getElementById(id);
   const el = {
-    list: $('list'), loading: $('loading'), empty: $('empty'), status: $('status'),
+    list: $('list'), loading: $('loading'), empty: $('empty'),
     nowTitle: $('nowTitle'), seekBar: $('seekBar'), cur: $('cur'), dur: $('dur'),
-    audio: $('audio'), src: $('src'),
+    audio: $('audio'),
     btnToggle: $('btnToggle'), btnStop: $('btnStop')
   };
   let tracks = [];
@@ -215,14 +208,11 @@
         .map(it => ({ name: it.name }));
       el.loading.classList.add('hidden');
       el.empty.classList.toggle('hidden', tracks.length > 0);
-      el.src.textContent = `Найдено треков: ${tracks.length} · ${GH.owner}/${GH.repo}/${GH.path}`;
-      el.status.textContent = tracks.length + ' песен';
       render();
     } catch (e) {
       el.loading.classList.add('hidden');
       el.empty.textContent = 'Не удалось загрузить список (' + e.message + ')';
       el.empty.classList.remove('hidden');
-      el.status.textContent = 'ошибка';
     }
   }
 
