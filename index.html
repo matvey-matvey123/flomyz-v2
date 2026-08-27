@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flomyz — Слушать</title>
+<style>
+  :root {
+    --bg: #0e0e16; --card: #1c1c2e; --card2: #242438;
+    --border: #2d2d45; --text: #ececf4; --muted: #8b8ba3;
+    --accent: #7c5cff; --accent2: #ff5ca8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", system-ui, sans-serif;
+    background: radial-gradient(900px 500px at 20% -10%, #232048 0%, var(--bg) 55%);
+    background-color: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  .top {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .logo { font-size: 20px; letter-spacing: 4px; font-weight: 300; }
+  .logo b { color: var(--accent2); }
+  .logo span {
+    display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    margin-right: 8px; box-shadow: 0 0 12px var(--accent);
+  }
+  .status { color: var(--muted); font-size: 13px; }
+  main { max-width: 640px; margin: 0 auto; padding: 24px 20px 60px; }
+  h1 { font-size: 24px; margin-bottom: 4px; }
+  p.sub { color: var(--muted); font-size: 14px; margin-bottom: 18px; }
+
+  .player {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 18px; margin-bottom: 18px;
+  }
+  .now { font-size: 12px; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); }
+  #nowTitle { font-size: 20px; margin: 6px 0 12px; word-break: break-word; min-height: 26px; }
+  #nowTitle.placeholder { color: var(--muted); font-size: 16px; font-weight: normal; }
+  .seek { display: flex; align-items: center; gap: 12px; }
+  .time { font-size: 13px; color: var(--muted); min-width: 38px; text-align: center; }
+  input[type="range"] {
+    -webkit-appearance: none; appearance: none; width: 100%; height: 6px;
+    border-radius: 6px; background: var(--card2); outline: none; cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 15px; height: 15px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    box-shadow: 0 0 8px rgba(124,92,255,.6);
+  }
+
+  .list { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 10px; }
+  .item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px; border-radius: 10px; cursor: pointer;
+    border: 1px solid transparent; transition: background .15s;
+  }
+  .item:hover { background: var(--card2); }
+  .item.playing { background: rgba(124,92,255,.16); border-color: var(--accent); }
+  .item .eq { width: 24px; height: 16px; display: none; }
+  .item.playing .eq { display: block; }
+  .item.playing .num { display: none; }
+  .item .num { color: var(--muted); font-size: 13px; width: 24px; text-align: center; }
+  .eq span {
+    display: inline-block; width: 3px; margin-right: 2px; background: var(--accent2);
+    border-radius: 2px; animation: eq 1s ease-in-out infinite;
+  }
+  .eq span:nth-child(1) { height: 8px; animation-delay: 0s; }
+  .eq span:nth-child(2) { height: 14px; animation-delay: .2s; }
+  .eq span:nth-child(3) { height: 10px; animation-delay: .4s; }
+  @keyframes eq { 0%,100% { transform: scaleY(.5); } 50% { transform: scaleY(1.4); } }
+  .item .name { flex: 1; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .item .dur { font-size: 12px; color: var(--muted); }
+  .hint-loading, .hint-empty { color: var(--muted); text-align: center; padding: 22px; font-size: 14px; }
+  .hidden { display: none !important; }
+  footer { text-align: center; color: var(--muted); font-size: 13px; padding: 18px; border-top: 1px solid var(--border); }
+</style>
+</head>
+<body>
+  <div class="top">
+    <div class="logo"><span></span>FLOMYZ <b>СЛУШАТЬ</b></div>
+    <div class="status" id="status"></div>
+  </div>
+
+  <main>
+    <h1>Фрагменты из GitHub</h1>
+    <p class="sub" id="src">Загрузка из репозитория matvey-matvey123/music…</p>
+
+    <div class="player">
+      <div class="now">Сейчас играет</div>
+      <div id="nowTitle" class="placeholder">Выбери трек</div>
+      <div class="seek">
+        <span class="time" id="cur">0:00</span>
+        <input type="range" id="seekBar" min="0" max="100" value="0">
+        <span class="time" id="dur">0:00</span>
+      </div>
+    </div>
+
+    <div class="list" id="list">
+      <div class="hint-loading" id="loading">Загружаю список…</div>
+      <div class="hint-empty hidden" id="empty">Песен пока нет в папке music.</div>
+    </div>
+  </main>
+
+  <footer>Flomyz &middot; слушай свои фрагменты</footer>
+
+  <audio id="audio"></audio>
+<script>
+(() => {
+  const GH = { owner: 'matvey-matvey123', repo: 'music', path: 'music', branch: 'main' };
+  const AUDIO_EXTS = ['.mp3', '.wav', '.ogg', '.m4a', '.aac', '.flac', '.opus'];
+  const $ = id => document.getElementById(id);
+  const el = {
+    list: $('list'), loading: $('loading'), empty: $('empty'), status: $('status'),
+    nowTitle: $('nowTitle'), seekBar: $('seekBar'), cur: $('cur'), dur: $('dur'),
+    audio: $('audio'), src: $('src')
+  };
+  let tracks = [];
+  let current = -1;
+
+  const fmt = s => {
+    if (!isFinite(s) || s < 0) s = 0;
+    return Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+  };
+
+  const rawUrl = name =>
+    `https://raw.githubusercontent.com/${GH.owner}/${GH.repo}/${GH.branch}/${GH.path}/${encodeURIComponent(name)}`;
+
+  function render() {
+    const nodes = tracks.map((t, i) => {
+      const div = document.createElement('div');
+      div.className = 'item';
+      const num = document.createElement('span'); num.className = 'num'; num.textContent = i + 1;
+      const eq = document.createElement('span'); eq.className = 'eq';
+      eq.innerHTML = '<span></span><span></span><span></span>';
+      const name = document.createElement('span'); name.className = 'name';
+      name.textContent = t.name; name.title = t.name;
+      const dur = document.createElement('span'); dur.className = 'dur';
+      dur.textContent = t.dur || '';
+      div.append(num, eq, name, dur);
+      div.addEventListener('click', () => play(i));
+      return div;
+    });
+    el.list.querySelectorAll('.item').forEach(n => n.remove());
+    nodes.forEach(n => el.list.appendChild(n));
+    updateActive();
+  }
+
+  function updateActive() {
+    [...el.list.querySelectorAll('.item')].forEach((n, i) =>
+      n.classList.toggle('playing', i === current));
+  }
+
+  function play(i) {
+    if (i < 0 || i >= tracks.length) return;
+    current = i;
+    el.audio.src = rawUrl(tracks[i].name);
+    el.audio.play().catch(() => {
+      el.nowTitle.textContent = 'Не удалось открыть: ' + tracks[i].name;
+      el.nowTitle.classList.remove('placeholder');
+    });
+    el.nowTitle.textContent = tracks[i].name;
+    el.nowTitle.classList.remove('placeholder');
+    updateActive();
+  }
+
+  async function load() {
+    try {
+      const res = await fetch(
+        `https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${GH.path}?ref=${GH.branch}`,
+        { headers: { 'Accept': 'application/vnd.github+json' } });
+      if (!res.ok) throw new Error('GitHub ' + res.status);
+      const data = await res.json();
+      tracks = (Array.isArray(data) ? data : [])
+        .filter(it => it.type === 'file' && AUDIO_EXTS.some(x => it.name.toLowerCase().endsWith(x)))
+        .map(it => ({ name: it.name }));
+      el.loading.classList.add('hidden');
+      el.empty.classList.toggle('hidden', tracks.length > 0);
+      el.src.textContent = `Найдено треков: ${tracks.length} · ${GH.owner}/${GH.repo}/${GH.path}`;
+      el.status.textContent = tracks.length + ' песен';
+      render();
+    } catch (e) {
+      el.loading.classList.add('hidden');
+      el.empty.textContent = 'Не удалось загрузить список (' + e.message + ')';
+      el.empty.classList.remove('hidden');
+      el.status.textContent = 'ошибка';
+    }
+  }
+
+  el.audio.addEventListener('timeupdate', () => {
+    el.cur.textContent = fmt(el.audio.currentTime);
+    el.seekBar.value = el.audio.duration ? (el.audio.currentTime / el.audio.duration) * 100 : 0;
+  });
+  el.audio.addEventListener('loadedmetadata', () => { el.dur.textContent = fmt(el.audio.duration); });
+  el.audio.addEventListener('ended', () => play((current + 1) % tracks.length));
+  el.audio.addEventListener('error', () => {
+    const item = [...el.list.querySelectorAll('.item')][current];
+    if (item) item.querySelector('.name').textContent = 'Ошибка воспроизведения';
+    el.nowTitle.textContent = 'Ошибка воспроизведения';
+  });
+  el.seekBar.addEventListener('input', () => {
+    if (el.audio.duration) el.audio.currentTime = (el.seekBar.value / 100) * el.audio.duration;
+  });
+
+  load();
+})();
+</script>
+</body>
+</html>
